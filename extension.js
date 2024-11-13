@@ -69,6 +69,10 @@ export default class MouseFollowsFocus extends Extension {
                 win.disconnect(win._mousefollowsfocus_extension_signal);
                 delete win._mousefollowsfocus_extension_signal;
             }
+            if (win._mousefollowsfocus_extension_signal_2) {
+                win.disconnect(win._mousefollowsfocus_extension_signal_2);
+                delete win._mousefollowsfocus_extension_signal_2;
+            }
         }
     }
 }
@@ -110,7 +114,12 @@ function focus_changed(win) {
     dbg_log("window focus event received");
 
     if (actor) {
-        let rect = win.get_buffer_rect();
+        mouse_follow_window(win, true);
+    }
+}
+function position_changed(win) {
+    const actor = get_window_actor(win);
+    dbg_log("window position changed event received");
 
         let [mouse_x, mouse_y, _] = global.get_pointer();
 
@@ -147,6 +156,10 @@ function connect_to_window(win) {
     win._mousefollowsfocus_extension_signal = win.connect(
         "focus",
         focus_changed,
+    );
+    win._mousefollowsfocus_extension_signal_2 = win.connect(
+        "position-changed",
+        position_changed,
     );
 }
 
