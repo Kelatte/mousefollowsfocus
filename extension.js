@@ -2,6 +2,7 @@ import Clutter from "gi://Clutter";
 import Meta from "gi://Meta";
 import { overview } from "resource:///org/gnome/shell/ui/main.js";
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
+import Effect from './effect.js';
 
 let DEBUGGING = false;
 
@@ -15,6 +16,7 @@ export default class MouseFollowsFocus extends Extension {
 
     enable() {
         dbg_log(`enabling ${EXT_NAME}`);
+        // _effect = new Effect();
 
         for (const actor of global.get_window_actors()) {
             if (actor.is_destroyed()) {
@@ -109,6 +111,87 @@ function dbg_log(message) {
     }
 }
 
+function focus_store_last_position(win, mouse_x, mouse_y) {
+    if (win != null) {
+        let rect2 = win.get_buffer_rect();
+        if (cursor_within_window(mouse_x, mouse_y, win)) {
+            let px = mouse_x - rect2.x;
+            let py = mouse_y - rect2.y;
+            if (px > 0 && py > 0) {
+                let wt = win.get_title();
+                dbg_log(`storing previous position (${px},${py}) of window: ${wt}`);
+                win._mousefollowsfocus_last_position = [px, py];
+            }
+        }
+    }
+}
+
+
+let _last_win = null;
+
+let _effect = new Effect();
+
+function mouse_follow_window(win, store_pos) {
+    let rect = win.get_buffer_rect();
+
+    let [mouse_x, mouse_y, mods] = global.get_pointer();
+
+    if (store_pos) {
+        focus_store_last_position(_last_win, mouse_x, mouse_y);
+    } else {
+        // always middle
+        if (win) {
+            win._mousefollowsfocus_last_position = null;
+        }
+    }
+
+    if (mods & Clutter.ModifierType.BUTTON1_MASK || mods & Clutter.ModifierType.BUTTON2_MASK || mods & Clutter.ModifierType.BUTTON3_MASK || mods & Clutter.ModifierType.BUTTON4_MASK || mods & Clutter.ModifierType.BUTTON5_MASK) {
+        dbg_log("button pressed, discarding event");
+        _last_win = win;
+        return;
+    }
+    if (rect.width < 10 && rect.height < 10) {
+        // xdg-copy creates a 1x1 pixel window to capture mouse events.
+        // Ignore this and similar windows.
+        dbg_log("window too small, discarding event");
+        return;
+    } 
+    if (overview.visible) {
+        dbg_log("overview visible, discarding event");
+        return;
+    }
+    if (win.get_wm_class() == "org.kde.CrowTranslate") {
+        return;
+    }
+    dbg_log(`151 ${mods} ${win.get_wm_class()}`)
+    dbg_log(`147 ${win.get_wm_class()}`)
+
+    dbg_log("targeting new window");
+    let seat = Clutter.get_default_backend().get_default_seat();
+    if (seat === null) { // Use strict equality check
+        dbg_log("seat is null!");
+        return;
+    }
+
+    let sx = 0;
+    let sy = 0;
+    if (win._mousefollowsfocus_last_position) {
+        let wx = win._mousefollowsfocus_last_position[0];
+        let wy = win._mousefollowsfocus_last_position[1];
+        sx = wx + rect.x;
+        sy = wy + rect.y;
+        dbg_log(`moving mouse from (${mouse_x},${mouse_y}) to previous position (${sx},${sy})`);
+        seat.warp_pointer(sx, sy);
+    } else {
+        sx = rect.x + rect.width / 2;
+        sy = rect.y + rect.height / 2;
+        // dbg_log(`targeting new position at middle (${nx},${ny})`);
+        seat.warp_pointer(sx, sy);
+    }
+    _effect.unmagnify();
+    _effect.move(sx, sy);
+    _last_win = win;
+}
 function focus_changed(win) {
     const actor = get_window_actor(win);
     dbg_log("window focus event received");
@@ -121,28 +204,8 @@ function position_changed(win) {
     const actor = get_window_actor(win);
     dbg_log("window position changed event received");
 
-        let [mouse_x, mouse_y, _] = global.get_pointer();
-
-        if (cursor_within_window(mouse_x, mouse_y, win)) {
-            dbg_log("pointer within window, discarding event");
-        } else if (overview.visible) {
-            dbg_log("overview visible, discarding event");
-        } else if (rect.width < 10 && rect.height < 10) {
-            // xdg-copy creates a 1x1 pixel window to capture mouse events.
-            // Ignore this and similar windows.
-            dbg_log("window too small, discarding event");
-        } else {
-            dbg_log("targeting new window");
-            let seat = Clutter.get_default_backend().get_default_seat();
-            if (seat !== null) {
-                seat.warp_pointer(
-                    rect.x + rect.width / 2,
-                    rect.y + rect.height / 2,
-                );
-            } else {
-                dbg_log("seat is null!");
-            }
-        }
+    if (actor) {
+        mouse_follow_window(win, false);
     }
 }
 
