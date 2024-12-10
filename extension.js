@@ -131,10 +131,19 @@ let _last_win = null;
 
 let _effect = new Effect();
 
-function mouse_follow_window(win, store_pos) {
+function mouse_follow_window(win, store_pos, only_hold_mods) {
     let rect = win.get_buffer_rect();
-
     let [mouse_x, mouse_y, mods] = global.get_pointer();
+    let wm_class = win.get_wm_class();
+    dbg_log(`targeting new window ${mods} ${wm_class} ${rect.width} ${rect.height}`)
+
+    if (only_hold_mods && mods == 0) {
+        return;
+    }
+    if (wm_class == "" || wm_class == "null") {
+        dbg_log("empty wm class, think it's floatting window");
+        return;
+    }
 
     if (store_pos) {
         focus_store_last_position(_last_win, mouse_x, mouse_y);
@@ -150,7 +159,7 @@ function mouse_follow_window(win, store_pos) {
         _last_win = win;
         return;
     }
-    if (rect.width < 10 && rect.height < 10) {
+    if (rect.width < 50 || rect.height < 50) {
         // xdg-copy creates a 1x1 pixel window to capture mouse events.
         // Ignore this and similar windows.
         dbg_log("window too small, discarding event");
@@ -160,13 +169,10 @@ function mouse_follow_window(win, store_pos) {
         dbg_log("overview visible, discarding event");
         return;
     }
-    if (win.get_wm_class() == "org.kde.CrowTranslate") {
+    if (wm_class == "org.kde.CrowTranslate") {
         return;
     }
-    dbg_log(`151 ${mods} ${win.get_wm_class()}`)
-    dbg_log(`147 ${win.get_wm_class()}`)
 
-    dbg_log("targeting new window");
     let seat = Clutter.get_default_backend().get_default_seat();
     if (seat === null) { // Use strict equality check
         dbg_log("seat is null!");
@@ -197,7 +203,7 @@ function focus_changed(win) {
     dbg_log("window focus event received");
 
     if (actor) {
-        mouse_follow_window(win, true);
+        mouse_follow_window(win, true, false);
     }
 }
 function position_changed(win) {
@@ -205,7 +211,7 @@ function position_changed(win) {
     dbg_log("window position changed event received");
 
     if (actor) {
-        mouse_follow_window(win, false);
+        mouse_follow_window(win, false, true);
     }
 }
 
