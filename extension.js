@@ -135,12 +135,12 @@ function mouse_follow_window(win, store_pos, only_hold_mods) {
     let rect = win.get_buffer_rect();
     let [mouse_x, mouse_y, mods] = global.get_pointer();
     let wm_class = win.get_wm_class();
-    dbg_log(`targeting new window ${mods} ${wm_class} ${rect.width} ${rect.height}`)
+    dbg_log(`targeting new window ${mods} ${wm_class} ${rect.width} ${rect.height} ${typeof wm_class}`)
 
     if (only_hold_mods && mods == 0) {
         return;
     }
-    if (wm_class == "" || wm_class == "null") {
+    if (wm_class == "" || wm_class == "null" || wm_class == null) {
         dbg_log("empty wm class, think it's floatting window");
         return;
     }
