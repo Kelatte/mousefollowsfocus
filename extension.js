@@ -137,14 +137,6 @@ function mouse_follow_window(win, store_pos, only_hold_mods) {
     let wm_class = win.get_wm_class();
     dbg_log(`targeting new window ${mods} ${wm_class} ${rect.width} ${rect.height} ${typeof wm_class}`)
 
-    if (only_hold_mods && mods == 0) {
-        return;
-    }
-    if (wm_class == "" || wm_class == "null" || wm_class == null) {
-        dbg_log("empty wm class, think it's floatting window");
-        return;
-    }
-
     if (store_pos) {
         focus_store_last_position(_last_win, mouse_x, mouse_y);
     } else {
@@ -152,6 +144,14 @@ function mouse_follow_window(win, store_pos, only_hold_mods) {
         if (win) {
             win._mousefollowsfocus_last_position = null;
         }
+    }
+
+    if (only_hold_mods && mods == 0) {
+        return;
+    }
+    if (wm_class == "" || wm_class == "null" || wm_class == null) {
+        dbg_log("empty wm class, think it's floatting window");
+        return;
     }
 
     if (mods & Clutter.ModifierType.BUTTON1_MASK || mods & Clutter.ModifierType.BUTTON2_MASK || mods & Clutter.ModifierType.BUTTON3_MASK || mods & Clutter.ModifierType.BUTTON4_MASK || mods & Clutter.ModifierType.BUTTON5_MASK) {

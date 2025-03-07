@@ -19,7 +19,7 @@ export default class Effect extends St.Icon {
         super();
         // this.isHidden = true;
         this.unmagnifyDuration = 300;
-        this.icon_size = 350;
+        this.icon_size = 450; // 350;
         this.cursor = new Cursor();
         [this._hotX, this._hotY] = this.cursor.hot;
 
