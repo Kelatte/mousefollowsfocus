@@ -169,7 +169,7 @@ function mouse_follow_window(win, store_pos, only_hold_mods) {
         dbg_log("overview visible, discarding event");
         return;
     }
-    if (wm_class == "org.kde.CrowTranslate") {
+    if (wm_class == "org.kde.CrowTranslate" || wm_class == "Pot") {
         return;
     }
 
@@ -230,6 +230,11 @@ function connect_to_window(win) {
         "position-changed",
         position_changed,
     );
+
+    let wm_class = win.get_wm_class();
+    if (wm_class == "Pot") {
+        win.focus(global.get_current_time());
+    }
 }
 
 function get_focused_window() {
